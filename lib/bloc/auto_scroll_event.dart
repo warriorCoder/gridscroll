@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:table_autoscroll/products.dart';
+import 'package:grid_autoscroll/products.dart';
 
 abstract class AutoScrollEvent extends Equatable {
   const AutoScrollEvent();
