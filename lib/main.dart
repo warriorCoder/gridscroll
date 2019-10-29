@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:table_autoscroll/bloc/bloc.dart';
-import 'package:table_autoscroll/products.dart';
+import 'package:grid_autoscroll/bloc/bloc.dart';
+import 'package:grid_autoscroll/products.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,51 +60,57 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: BlocBuilder<AutoScrollBloc, AutoScrollState>(
-        builder: (context, state) {
-          if (state is ProductsLoading)
-            return Center(child: CircularProgressIndicator());
-          if (state is ProductsLoaded) {
-            if (_offset > 0)
-              Timer(
-                Duration(milliseconds: 200),
-                () => _scroller.animateTo(_offset,
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.ease),
+      body: BlocListener<AutoScrollBloc, AutoScrollState>(
+        listener: (context, state) {
+          if (state is ProductsLoaded && _offset > 0) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _scroller.animateTo(
+                _offset,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.ease,
               );
-            return GridView.count(
-              controller: _scroller,
-              crossAxisCount: 2,
-              children: state.products.map<Widget>(
-                (Product product) {
-                  return Dismissible(
-                    key: Key(product.name),
-                    onDismissed: (direction) {
-                      _bloc.add(DeleteProduct(product));
-                      setState(() {
-                        _offset = _scroller.offset;
-                      });
-                    },
-                    child: Card(
-                      child: Center(
-                        child: Text(
-                          product.name,
-                          style: TextStyle(fontSize: 24),
+            });
+          }
+        },
+        child: BlocBuilder<AutoScrollBloc, AutoScrollState>(
+          builder: (context, state) {
+            if (state is ProductsLoading)
+              return Center(child: CircularProgressIndicator());
+            if (state is ProductsLoaded) {
+              return GridView.count(
+                controller: _scroller,
+                crossAxisCount: 2,
+                children: state.products.map<Widget>(
+                  (Product product) {
+                    return Dismissible(
+                      key: Key(product.name),
+                      onDismissed: (direction) {
+                        _bloc.add(DeleteProduct(product));
+                        setState(() {
+                          _offset = _scroller.offset;
+                        });
+                      },
+                      child: Card(
+                        child: Center(
+                          child: Text(
+                            product.name,
+                            style: TextStyle(fontSize: 24),
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ).toList(),
+                    );
+                  },
+                ).toList(),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: Center(
+                child: Text("Didn't load products"),
+              ),
             );
-          }
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: Center(
-              child: Text("Didn't load products"),
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }
